@@ -22,12 +22,18 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _isLoading = true;
     _loadExpenses();
   }
+
+  bool _isLoading = true;
 
   Future<void> _loadExpenses() async {
     final prefs = await SharedPreferences.getInstance();
     List<String>? expenseList = prefs.getStringList('expenses');
+
+    await Future.delayed(Duration(seconds: 1)); // Simulated loading delay
+
     if (expenseList != null) {
       setState(() {
         _expenses.clear();
@@ -35,6 +41,10 @@ class _HomeScreenState extends State<HomeScreen> {
         _filteredExpenses = List.from(_expenses);
       });
     }
+
+    setState(() {
+      _isLoading = false; // Stop loading
+    });
   }
 
   Future<void> _saveExpenses() async {
@@ -84,9 +94,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void _searchExpenses(String query) {
     setState(() {
       _filteredExpenses = _expenses.where((expense) {
-        final matchesTitle = expense.title.toLowerCase().contains(query.toLowerCase());
+        final matchesTitle = expense.title.toLowerCase().contains(
+            query.toLowerCase());
         final matchesDate = _selectedDate == null ||
-            DateFormat('yyyy-MM-dd').format(expense.date) == DateFormat('yyyy-MM-dd').format(_selectedDate!);
+            DateFormat('yyyy-MM-dd').format(expense.date) ==
+                DateFormat('yyyy-MM-dd').format(_selectedDate!);
         return matchesTitle && matchesDate;
       }).toList();
     });
@@ -110,13 +122,15 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showAddExpenseDialog() {
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: AddExpenseDialog(_addExpense),
-        ),
-      ),
+      builder: (ctx) =>
+          Dialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15)),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: AddExpenseDialog(_addExpense),
+            ),
+          ),
     );
   }
 
@@ -137,6 +151,10 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.blueAccent,
         centerTitle: true,
         iconTheme: IconThemeData(color: Colors.white),
+        leading: IconButton(
+          icon: Icon(Icons.home, color: Colors.white),
+          onPressed: () {},
+        ),
         actions: [
           IconButton(
             icon: Icon(Icons.date_range, color: Colors.white),
@@ -147,18 +165,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 firstDate: DateTime(2000),
                 lastDate: DateTime(2100),
               );
-              if (picked != null) {
-                _filterByDate(picked);
-              }
+              if (picked != null) _filterByDate(picked);
             },
           ),
-          IconButton(
-            icon: Icon(Icons.clear, color: Colors.white),
-            onPressed: _clearFilters,
-          ),
+          IconButton(icon: Icon(Icons.clear, color: Colors.white),
+              onPressed: _clearFilters),
         ],
       ),
-      body: Column(
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator(color: Colors.blueAccent))
+          : Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(12.0),
@@ -168,20 +184,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 hintText: 'Search by title...',
                 prefixIcon: Icon(Icons.search),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                    borderRadius: BorderRadius.circular(12)),
               ),
               onChanged: _searchExpenses,
             ),
           ),
           Expanded(
             child: _filteredExpenses.isEmpty
-                ? Center(
-              child: Text(
-                'No expenses found!',
-                style: TextStyle(fontSize: 18, color: Colors.grey),
-              ),
-            )
+                ? Center(child: Text('No expenses found!',
+                style: TextStyle(fontSize: 18, color: Colors.grey)))
                 : ListView.builder(
               itemCount: _filteredExpenses.length,
               itemBuilder: (ctx, index) {
@@ -190,45 +201,33 @@ class _HomeScreenState extends State<HomeScreen> {
                   margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                   elevation: 3,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                      borderRadius: BorderRadius.circular(12)),
                   child: ListTile(
                     contentPadding: EdgeInsets.all(16),
                     leading: expense.imagePath != null
-                        ? Image.file(
-                      File(expense.imagePath!),
-                      width: 50,
-                      height: 50,
-                      fit: BoxFit.cover,
-                    )
+                        ? Image.file(File(expense.imagePath!), width: 50,
+                        height: 50,
+                        fit: BoxFit.cover)
                         : Icon(Icons.money, size: 40, color: Colors.green),
-                    title: Text(
-                      expense.title,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blueAccent,
-                      ),
-                    ),
+                    title: Text(expense.title,
+                        style: TextStyle(fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueAccent)),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          DateFormat('yyyy-MM-dd HH:mm').format(expense.date),
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        Text(
-                          '₱${expense.amount.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green,
-                          ),
-                        ),
+                        Text(DateFormat('yyyy-MM-dd HH:mm').format(
+                            expense.date),
+                            style: TextStyle(color: Colors.grey)),
+                        Text('₱${expense.amount.toStringAsFixed(2)}',
+                            style: TextStyle(fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green)),
                         if (expense.imagePath != null)
                           TextButton(
                             onPressed: () => _viewImage(expense.imagePath!),
-                            child: Text('View Image', style: TextStyle(color: Colors.blue)),
+                            child: Text('View Image',
+                                style: TextStyle(color: Colors.blue)),
                           ),
                       ],
                     ),
@@ -250,7 +249,8 @@ class _HomeScreenState extends State<HomeScreen> {
         unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.list), label: 'All Expenses'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.list), label: 'All Expenses'),
           BottomNavigationBarItem(icon: Icon(Icons.info), label: 'About Us'),
         ],
         onTap: (index) {
@@ -258,29 +258,29 @@ class _HomeScreenState extends State<HomeScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => AllExpensesPage(
-                  expenses: _expenses,
-                  editExpense: _editExpense,
-                  deleteExpense: _deleteExpense,
-                ),
+                builder: (context) =>
+                    AllExpensesPage(
+                      expenses: _expenses,
+                      editExpense: _editExpense,
+                      deleteExpense: _deleteExpense,
+                    ),
               ),
             );
           } else if (index == 2) {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => AboutUsScreen(
-                  expenses: _expenses, // ✅ Now passing expenses
-                  editExpense: _editExpense,
-                  deleteExpense: _deleteExpense,
-                ),
+                builder: (context) =>
+                    AboutUsScreen(
+                      expenses: _expenses,
+                      editExpense: _editExpense,
+                      deleteExpense: _deleteExpense,
+                    ),
               ),
             );
-
           }
         },
       ),
-
     );
   }
 }

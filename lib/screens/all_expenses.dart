@@ -32,21 +32,28 @@ class _AllExpensesPageState extends State<AllExpensesPage> {
   @override
   void initState() {
     super.initState();
-    _filteredExpenses = List.from(widget.expenses);
+    _isLoading = true;
+    Future.delayed(Duration(seconds: 1), () {
+      setState(() {
+        _filteredExpenses = List.from(widget.expenses);
+        _isLoading = false;
+      });
+    });
   }
+
+  bool _isLoading = true;
 
   void _searchExpenses(String query) {
     setState(() {
       _filteredExpenses = widget.expenses.where((expense) {
-        final matchesTitle = expense.title.toLowerCase().contains(
-            query.toLowerCase());
+        final matchesTitle = expense.title.toLowerCase().contains(query.toLowerCase());
         final matchesDate = _selectedDate == null ||
-            DateFormat('yyyy-MM-dd').format(expense.date) ==
-                DateFormat('yyyy-MM-dd').format(_selectedDate!);
+            DateFormat('yyyy-MM-dd').format(expense.date) == DateFormat('yyyy-MM-dd').format(_selectedDate!);
         return matchesTitle && matchesDate;
       }).toList();
     });
   }
+
 
   void _filterByDate(DateTime? selectedDate) {
     setState(() {
@@ -208,6 +215,7 @@ class _AllExpensesPageState extends State<AllExpensesPage> {
     return _filteredExpenses.fold(0, (sum, expense) => sum + expense.amount);
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -240,7 +248,9 @@ class _AllExpensesPageState extends State<AllExpensesPage> {
           ),
         ],
       ),
-      body: Column(
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator(color: Colors.blueAccent))
+          : Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(12.0),
@@ -282,12 +292,14 @@ class _AllExpensesPageState extends State<AllExpensesPage> {
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1, // Keeps the selected tab on "All Expenses"
+        currentIndex: 1,
+        // Keeps the selected tab on "All Expenses"
         selectedItemColor: Colors.blueAccent,
         unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.list), label: 'All Expenses'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.list), label: 'All Expenses'),
           BottomNavigationBarItem(icon: Icon(Icons.info), label: 'About Us'),
         ],
         onTap: (index) {
@@ -299,14 +311,15 @@ class _AllExpensesPageState extends State<AllExpensesPage> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => AboutUsScreen(
-                  expenses: widget.expenses, // ✅ Now passing expenses correctly
-                  editExpense: widget.editExpense,
-                  deleteExpense: widget.deleteExpense,
-                ),
+                builder: (context) =>
+                    AboutUsScreen(
+                      expenses: widget.expenses,
+                      // ✅ Now passing expenses correctly
+                      editExpense: widget.editExpense,
+                      deleteExpense: widget.deleteExpense,
+                    ),
               ),
             );
-
           }
         },
       ),
