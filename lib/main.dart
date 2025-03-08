@@ -10,6 +10,7 @@ class ExpenseTrackerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false, // ✅ Removes the debug banner
       title: 'Expense Tracker',
       theme: ThemeData(
         primarySwatch: Colors.blue,

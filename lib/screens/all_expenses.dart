@@ -138,7 +138,10 @@ class _AllExpensesPageState extends State<AllExpensesPage> {
                     const SnackBar(content: Text('Expense updated!')),
                   );
                 },
-                child: const Text('Save Changes'),
+                child: const Text(
+                  'Save Changes',
+                  style: TextStyle(color: Colors.white), // ✅ Set text color to white
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                 ),
