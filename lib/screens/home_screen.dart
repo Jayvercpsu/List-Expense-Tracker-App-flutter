@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:list_expenses/models/expense.dart';
 import 'all_expenses.dart';
-import 'reports.dart';
 import 'package:list_expenses/widgets/expense_dialog.dart';
 import 'homepage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -13,42 +14,76 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final List<Expense> _expenses = [];
   int _selectedIndex = 0;
-
-  final List<Widget> _pages = [];
-
-  final Map<String, List<Expense>> _expenseCategories = {
-    'Palit Bayad': [],
-    'Palit Sud-an': [],
-    'Others': [],
-  };
+  late List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
-    _pages.addAll([
+    _loadExpenses();
+    _initializePages();
+  }
+
+  void _initializePages() {
+    _pages = [
       HomePage(
         expenses: _expenses,
+        addExpense: _addExpense,
         deleteExpense: _deleteExpense,
         calculateTotalExpenses: _calculateTotalExpenses,
       ),
-      AllExpensesPage(expenses: _expenses, onDelete: (expenseId) => _deleteExpense(expenseId)),
-      ReportsPage(expenseCategories: _expenseCategories),
-    ]);
+      AllExpensesPage(
+        expenses: _expenses,
+        onDelete: (expenseId) => _deleteExpense(expenseId),
+      ),
+    ];
   }
 
-  void _addExpense(String title, double amount, String category) {
+  Future<void> _loadExpenses() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String>? expenseList = prefs.getStringList('expenses');
+
+    if (expenseList != null) {
+      setState(() {
+        _expenses.clear();
+        _expenses.addAll(expenseList.map((e) => Expense.fromJson(e)));
+        _initializePages(); // Reinitialize pages to reflect changes
+      });
+    }
+  }
+
+  Future<void> _saveExpenses() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> expenseList = _expenses.map((e) => e.toJson()).toList();
+    await prefs.setStringList('expenses', expenseList);
+  }
+
+  void _addExpense(String title, double amount) {
     final newExpense = Expense(
       id: DateTime.now().toString(),
       title: title,
-      amount: amount, // Convert to PHP
+      amount: amount,
       date: DateTime.now(),
-      type: category,
     );
 
     setState(() {
       _expenses.add(newExpense);
-      _expenseCategories[category]?.add(newExpense);
+      _initializePages(); // Update UI instantly
     });
+
+    _saveExpenses(); // Save expenses persistently
+  }
+
+  void _deleteExpense(String expenseId) {
+    setState(() {
+      _expenses.removeWhere((expense) => expense.id == expenseId);
+      _initializePages(); // Update UI instantly
+    });
+
+    _saveExpenses(); // Save updated expenses
+  }
+
+  double _calculateTotalExpenses() {
+    return _expenses.fold(0, (sum, expense) => sum + expense.amount);
   }
 
   void _showAddExpenseDialog() {
@@ -66,20 +101,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _deleteExpense(String expenseId) {
-    setState(() {
-      _expenses.removeWhere((expense) => expense.id == expenseId); // Removes the expense by id
-    });
-  }
-
-  double _calculateTotalExpenses() {
-    double total = 0;
-    for (var expense in _expenses) {
-      total += expense.amount;
-    }
-    return total;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,49 +108,6 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text('Expense Tracker', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.blueAccent,
         centerTitle: true,
-      ),
-      drawer: Drawer(
-        child: ListView(
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(color: Colors.blueAccent),
-              child: Center(
-                child: Text(
-                  'Expense Tracker',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.home, color: Colors.blueAccent),
-              title: Text('Home', style: TextStyle(fontSize: 18)),
-              onTap: () {
-                setState(() => _selectedIndex = 0);
-                Navigator.of(context).pop();
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.list, color: Colors.blueAccent),
-              title: Text('All Expenses', style: TextStyle(fontSize: 18)),
-              onTap: () {
-                setState(() => _selectedIndex = 1);
-                Navigator.of(context).pop();
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.pie_chart, color: Colors.blueAccent),
-              title: Text('Reports', style: TextStyle(fontSize: 18)),
-              onTap: () {
-                setState(() => _selectedIndex = 2);
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        ),
       ),
       body: _pages[_selectedIndex],
       floatingActionButton: FloatingActionButton(
@@ -149,7 +127,6 @@ class _HomeScreenState extends State<HomeScreen> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.list), label: 'All Expenses'),
-          BottomNavigationBarItem(icon: Icon(Icons.pie_chart), label: 'Reports'),
         ],
       ),
     );

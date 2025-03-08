@@ -1,21 +1,17 @@
 import 'package:flutter/material.dart';
-import '../models/expense.dart';
 
 class AddExpenseDialog extends StatelessWidget {
   final Function addExpense;
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
-  final _categoryController = TextEditingController();
 
   AddExpenseDialog(this.addExpense);
 
   void _submitData(BuildContext context) {
     final enteredTitle = _titleController.text.trim();
     final enteredAmount = double.tryParse(_amountController.text) ?? 0;
-    final enteredCategory = _categoryController.text.trim();
 
-    if (enteredTitle.isEmpty || enteredAmount <= 0 || enteredCategory.isEmpty) {
-      // Show a simple alert dialog for incomplete data
+    if (enteredTitle.isEmpty || enteredAmount <= 0) {
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
@@ -32,7 +28,7 @@ class AddExpenseDialog extends StatelessWidget {
       return;
     }
 
-    addExpense(enteredTitle, enteredAmount, enteredCategory);
+    addExpense(enteredTitle, enteredAmount);
 
     // Close the dialog and dismiss the keyboard
     FocusScope.of(context).unfocus();
@@ -64,7 +60,7 @@ class AddExpenseDialog extends StatelessWidget {
             TextField(
               controller: _amountController,
               decoration: const InputDecoration(
-                labelText: 'Amount (in PHP)', // Updated label
+                labelText: 'Amount (in PHP)',
                 labelStyle: TextStyle(color: Colors.blue),
                 focusedBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: Colors.blue),
@@ -74,20 +70,6 @@ class AddExpenseDialog extends StatelessWidget {
                 ),
               ),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _categoryController,
-              decoration: const InputDecoration(
-                labelText: 'Category',
-                labelStyle: TextStyle(color: Colors.blue),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.blue),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey),
-                ),
-              ),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
