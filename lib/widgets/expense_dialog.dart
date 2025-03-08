@@ -1,13 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
-class AddExpenseDialog extends StatelessWidget {
-  final Function addExpense;
-  final _titleController = TextEditingController();
-  final _amountController = TextEditingController();
+class AddExpenseDialog extends StatefulWidget {
+  final Function(String, double, String?) addExpense;
 
   AddExpenseDialog(this.addExpense);
 
-  void _submitData(BuildContext context) {
+  @override
+  _AddExpenseDialogState createState() => _AddExpenseDialogState();
+}
+
+class _AddExpenseDialogState extends State<AddExpenseDialog> {
+  final _titleController = TextEditingController();
+  final _amountController = TextEditingController();
+  File? _selectedImage;
+
+  Future<void> _pickImage() async {
+    final pickedFile =
+    await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+    }
+  }
+
+  void _submitData() {
     final enteredTitle = _titleController.text.trim();
     final enteredAmount = double.tryParse(_amountController.text) ?? 0;
 
@@ -28,10 +47,7 @@ class AddExpenseDialog extends StatelessWidget {
       return;
     }
 
-    addExpense(enteredTitle, enteredAmount);
-
-    // Close the dialog and dismiss the keyboard
-    FocusScope.of(context).unfocus();
+    widget.addExpense(enteredTitle, enteredAmount, _selectedImage?.path);
     Navigator.of(context).pop();
   }
 
@@ -69,14 +85,29 @@ class AddExpenseDialog extends StatelessWidget {
                   borderSide: BorderSide(color: Colors.grey),
                 ),
               ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+              const TextInputType.numberWithOptions(decimal: true),
             ),
             const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _pickImage,
+              icon: Icon(Icons.image, color: Colors.white),
+              label: Text('Upload Image', style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+              ),
+            ),
+            if (_selectedImage != null)
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Image.file(_selectedImage!, height: 100),
+              ),
+            const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () => _submitData(context),
+              onPressed: _submitData,
               child: const Text(
                 'Add Expense',
-                style: TextStyle(color: Colors.white), // ✅ Set text color to white
+                style: TextStyle(color: Colors.white),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,

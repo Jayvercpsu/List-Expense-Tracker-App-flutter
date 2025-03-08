@@ -1,9 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:list_expenses/models/expense.dart';
 import 'all_expenses.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:list_expenses/widgets/expense_dialog.dart';
+import 'view_image_screen.dart';
+import 'package:list_expenses/about-us/about_us_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -40,12 +43,13 @@ class _HomeScreenState extends State<HomeScreen> {
     await prefs.setStringList('expenses', expenseList);
   }
 
-  void _addExpense(String title, double amount) {
+  void _addExpense(String title, double amount, String? imagePath) {
     final newExpense = Expense(
       id: DateTime.now().toString(),
       title: title,
       amount: amount,
       date: DateTime.now(),
+      imagePath: imagePath,
     );
 
     setState(() {
@@ -61,8 +65,8 @@ class _HomeScreenState extends State<HomeScreen> {
       int index = _expenses.indexWhere((exp) => exp.id == updatedExpense.id);
       if (index != -1) {
         _expenses[index] = updatedExpense;
-        _filteredExpenses = _expenses;
       }
+      _filteredExpenses = _expenses;
     });
 
     _saveExpenses();
@@ -80,11 +84,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void _searchExpenses(String query) {
     setState(() {
       _filteredExpenses = _expenses.where((expense) {
-        final matchesTitle =
-        expense.title.toLowerCase().contains(query.toLowerCase());
+        final matchesTitle = expense.title.toLowerCase().contains(query.toLowerCase());
         final matchesDate = _selectedDate == null ||
-            DateFormat('yyyy-MM-dd').format(expense.date) ==
-                DateFormat('yyyy-MM-dd').format(_selectedDate!);
+            DateFormat('yyyy-MM-dd').format(expense.date) == DateFormat('yyyy-MM-dd').format(_selectedDate!);
         return matchesTitle && matchesDate;
       }).toList();
     });
@@ -118,6 +120,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _viewImage(String imagePath) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ViewImageScreen(imagePath: imagePath),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -125,16 +136,10 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text('Expense Tracker', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.blueAccent,
         centerTitle: true,
-        iconTheme: IconThemeData(color: Colors.white), // ✅ Ensures all icons are white
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white), // ✅ Back arrow set to white
-          onPressed: () {
-            Navigator.pop(context); // ✅ Navigates back when pressed
-          },
-        ),
+        iconTheme: IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            icon: Icon(Icons.date_range, color: Colors.white), // ✅ Date picker icon set to white
+            icon: Icon(Icons.date_range, color: Colors.white),
             onPressed: () async {
               DateTime? picked = await showDatePicker(
                 context: context,
@@ -148,12 +153,11 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           IconButton(
-            icon: Icon(Icons.clear, color: Colors.white), // ✅ Clear (X) icon set to white
+            icon: Icon(Icons.clear, color: Colors.white),
             onPressed: _clearFilters,
           ),
         ],
       ),
-
       body: Column(
         children: [
           Padding(
@@ -183,14 +187,21 @@ class _HomeScreenState extends State<HomeScreen> {
               itemBuilder: (ctx, index) {
                 final expense = _filteredExpenses[index];
                 return Card(
-                  margin: EdgeInsets.symmetric(
-                      vertical: 8, horizontal: 16),
+                  margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                   elevation: 3,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: ListTile(
                     contentPadding: EdgeInsets.all(16),
+                    leading: expense.imagePath != null
+                        ? Image.file(
+                      File(expense.imagePath!),
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.cover,
+                    )
+                        : Icon(Icons.money, size: 40, color: Colors.green),
                     title: Text(
                       expense.title,
                       style: TextStyle(
@@ -199,17 +210,27 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: Colors.blueAccent,
                       ),
                     ),
-                    subtitle: Text(
-                      DateFormat('yyyy-MM-dd HH:mm').format(expense.date),
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    trailing: Text(
-                      '₱${expense.amount.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          DateFormat('yyyy-MM-dd HH:mm').format(expense.date),
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                        Text(
+                          '₱${expense.amount.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                        if (expense.imagePath != null)
+                          TextButton(
+                            onPressed: () => _viewImage(expense.imagePath!),
+                            child: Text('View Image', style: TextStyle(color: Colors.blue)),
+                          ),
+                      ],
                     ),
                   ),
                 );
@@ -225,9 +246,12 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
+        selectedItemColor: Colors.blueAccent,
+        unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.list), label: 'All Expenses'),
+          BottomNavigationBarItem(icon: Icon(Icons.info), label: 'About Us'),
         ],
         onTap: (index) {
           if (index == 1) {
@@ -241,9 +265,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             );
+          } else if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AboutUsScreen(
+                  expenses: _expenses, // ✅ Now passing expenses
+                  editExpense: _editExpense,
+                  deleteExpense: _deleteExpense,
+                ),
+              ),
+            );
+
           }
         },
       ),
+
     );
   }
 }
