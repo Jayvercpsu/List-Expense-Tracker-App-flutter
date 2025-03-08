@@ -4,15 +4,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/expense.dart';
 
 class HomePage extends StatefulWidget {
-  final List<Expense> expenses;
   final Function(String) deleteExpense;
-  final Function(String, double) addExpense;
   final double Function() calculateTotalExpenses;
 
   HomePage({
-    required this.expenses,
     required this.deleteExpense,
-    required this.addExpense,
     required this.calculateTotalExpenses,
   });
 
@@ -21,6 +17,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  List<Expense> expenses = [];
+
   @override
   void initState() {
     super.initState();
@@ -32,24 +30,25 @@ class _HomePageState extends State<HomePage> {
     List<String>? expenseList = prefs.getStringList('expenses');
     if (expenseList != null) {
       setState(() {
-        widget.expenses.clear();
-        widget.expenses.addAll(
-          expenseList.map((expenseStr) => Expense.fromJson(expenseStr)),
-        );
+        expenses = expenseList
+            .map((expenseStr) => Expense.fromJson(expenseStr))
+            .toList();
       });
     }
   }
 
   Future<void> _saveExpenses() async {
     final prefs = await SharedPreferences.getInstance();
-    List<String> expenseList =
-    widget.expenses.map((expense) => expense.toJson()).toList();
-    await prefs.setStringList('expenses', expenseList);
+    List<String> expenseList = expenses.map((expense) => expense.toJson()).toList();
+    prefs.setStringList('expenses', expenseList);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Expense Tracker'),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -66,9 +65,9 @@ class _HomePageState extends State<HomePage> {
             SizedBox(height: 20),
             Expanded(
               child: ListView.builder(
-                itemCount: widget.expenses.length,
+                itemCount: expenses.length,
                 itemBuilder: (ctx, index) {
-                  final expense = widget.expenses[index];
+                  final expense = expenses[index];
                   return Card(
                     margin: EdgeInsets.symmetric(vertical: 8),
                     elevation: 5,
@@ -97,7 +96,7 @@ class _HomePageState extends State<HomePage> {
                       onLongPress: () {
                         widget.deleteExpense(expense.id);
                         setState(() {
-                          widget.expenses.removeAt(index);
+                          expenses.removeAt(index);
                           _saveExpenses();
                         });
                       },

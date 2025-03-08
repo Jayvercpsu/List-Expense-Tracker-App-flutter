@@ -74,7 +74,10 @@ class AddExpenseDialog extends StatelessWidget {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () => _submitData(context),
-              child: const Text('Add Expense'),
+              child: const Text(
+                'Add Expense',
+                style: TextStyle(color: Colors.white), // ✅ Set text color to white
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
               ),
